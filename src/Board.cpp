@@ -1,4 +1,4 @@
-#include "Board.h"
+#include "../include/Board.h"
 
 Board::Board(const std::vector<Card>& cards) : cards(cards) {
     computeCounters();

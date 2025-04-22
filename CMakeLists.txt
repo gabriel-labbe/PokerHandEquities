@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.10)
-
-project(CardProject)
+project(PokerEquityCalculator)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# Grab all .cpp files in the current directory
-file(GLOB SOURCES "*.cpp")
+# Include headers
+include_directories(include)
 
-# Name the executable after the project (or anything else you like)
-add_executable(CardProject ${SOURCES})
+# Gather source files
+file(GLOB SOURCES "src/*.cpp")
+
+# Create executable
+add_executable(PokerEquityCalculator ${SOURCES})

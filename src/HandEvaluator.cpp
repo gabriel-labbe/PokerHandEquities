@@ -1,4 +1,4 @@
-#include "HandEvaluator.h"
+#include "../include/HandEvaluator.h"
 
 HandValue HandEvaluator::evaluate(const Board& board, const std::vector<Card>& hand) {
     std::array<int, 15> rankCount = board.getRankCount();
