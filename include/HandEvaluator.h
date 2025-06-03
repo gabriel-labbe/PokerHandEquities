@@ -21,10 +21,9 @@ struct HandValue {
 class HandEvaluator {
 public:
     static HandValue evaluate(const Board& board, const std::vector<Card>& hand);
+    static int getTopStraightRank(uint16_t mask);
 
 private:
-    static bool isStraight(uint16_t mask);
-    static Card::Rank getTopStraightRank(uint16_t mask);
     static Card::Rank getHighestKicker(const std::array<int, 15>& count, int exclude);
     static std::vector<Card::Rank> getTopKickers(const std::array<int, 15>& count, const std::vector<int>& exclude, int needed);
 };

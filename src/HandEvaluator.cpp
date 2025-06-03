@@ -12,9 +12,6 @@ HandValue HandEvaluator::evaluate(const Board& board, const std::vector<Card>& h
         rankMask |= (1 << r);
     }
 
-    if (rankMask & (1 << 14))
-        rankMask |= (1 << 1);
-
     int flushSuit = -1;
     if (board.isFlushPossible()) {
         for (int s = 0; s < 4; ++s) {
@@ -35,11 +32,10 @@ HandValue HandEvaluator::evaluate(const Board& board, const std::vector<Card>& h
             if ((int)c.getSuit() == flushSuit)
                 flushMask |= (1 << (int)c.getRank());
         }
-        if (flushMask & (1 << 14))
-            flushMask |= (1 << 1);
 
-        if (isStraight(flushMask)) {
-            return {9, {getTopStraightRank(flushMask)}};
+        int topStraight = getTopStraightRank(flushMask);
+        if (topStraight != 0) {
+            return {9, {(Card::Rank)topStraight}};
         }
     }
 
@@ -71,8 +67,9 @@ HandValue HandEvaluator::evaluate(const Board& board, const std::vector<Card>& h
         return {6, flushRanks};
     }
 
-    if (board.isStraightPossible() || isStraight(rankMask)) {
-        return {5, {getTopStraightRank(rankMask)}};
+    int topStraight = getTopStraightRank(rankMask);
+    if (topStraight != 0) {
+        return {5, {(Card::Rank)topStraight}};
     }
 
     three = 0;
@@ -108,33 +105,25 @@ HandValue HandEvaluator::evaluate(const Board& board, const std::vector<Card>& h
     return {1, highCards};
 }
 
-bool HandEvaluator::isStraight(uint16_t mask) {
-    static const uint16_t straightMasks[10] = {
-        0b11111000000000, 0b01111100000000, 0b00111110000000,
-        0b00011111000000, 0b00001111100000, 0b00000111110000,
-        0b00000011111000, 0b00000001111100, 0b00000000111110,
-        0b10000000011110
-    };
-    for (auto m : straightMasks) {
-        if ((mask & m) == m)
-            return true;
-    }
-    return false;
-}
-
-Card::Rank HandEvaluator::getTopStraightRank(uint16_t mask) {
+int HandEvaluator::getTopStraightRank(uint16_t mask) {
     static const std::array<int, 10> topRanks = {14, 13, 12, 11, 10, 9, 8, 7, 6, 5};
     static const uint16_t straightMasks[10] = {
-        0b11111000000000, 0b01111100000000, 0b00111110000000,
-        0b00011111000000, 0b00001111100000, 0b00000111110000,
-        0b00000011111000, 0b00000001111100, 0b00000000111110,
-        0b10000000011110
+        (1<<14)|(1<<13)|(1<<12)|(1<<11)|(1<<10),
+        (1<<13)|(1<<12)|(1<<11)|(1<<10)|(1<<9),
+        (1<<12)|(1<<11)|(1<<10)|(1<<9)|(1<<8),
+        (1<<11)|(1<<10)|(1<<9)|(1<<8)|(1<<7),
+        (1<<10)|(1<<9)|(1<<8)|(1<<7)|(1<<6),
+        (1<<9)|(1<<8)|(1<<7)|(1<<6)|(1<<5),
+        (1<<8)|(1<<7)|(1<<6)|(1<<5)|(1<<4),
+        (1<<7)|(1<<6)|(1<<5)|(1<<4)|(1<<3),
+        (1<<6)|(1<<5)|(1<<4)|(1<<3)|(1<<2),
+        (1<<14)|(1<<5)|(1<<4)|(1<<3)|(1<<2)
     };
     for (int i = 0; i < 10; ++i) {
         if ((mask & straightMasks[i]) == straightMasks[i])
-            return (Card::Rank)topRanks[i];
+            return topRanks[i];
     }
-    return Card::Rank::Two;
+    return 0;
 }
 
 Card::Rank HandEvaluator::getHighestKicker(const std::array<int, 15>& count, int exclude) {
