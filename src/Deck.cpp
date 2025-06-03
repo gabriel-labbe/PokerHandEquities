@@ -5,7 +5,7 @@
 
 Deck::Deck() {
     for (int suit = 0; suit < 4; ++suit) {
-        for (int rank = 0; rank < 13; ++rank) {
+        for (int rank = static_cast<int>(Card::Rank::Two); rank <= static_cast<int>(Card::Rank::Ace); ++rank) {
             cards.emplace_back(
                 static_cast<Card::Rank>(rank),
                 static_cast<Card::Suit>(suit)
