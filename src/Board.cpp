@@ -13,6 +13,7 @@ void Board::computeCounters() {
         rankCount[r]++;
         suitCount[static_cast<int>(c.getSuit())]++;
         rankMask |= (1 << r);
+        suitRankMasks[static_cast<int>(c.getSuit())] |= (1 << r);
     }
     // Ace-low straight adjustment
     if (rankMask & (1 << 14))
@@ -59,6 +60,7 @@ const std::vector<Card>& Board::getCards() const { return cards; }
 const std::array<int, 15>& Board::getRankCount() const { return rankCount; }
 const std::array<int, 4>& Board::getSuitCount() const { return suitCount; }
 uint16_t Board::getRankMask() const { return rankMask; }
+uint16_t Board::getSuitRankMask(int suit) const { return suitRankMasks[suit]; }
 bool Board::isFlushPossible() const { return flushPossible; }
 bool Board::isPaired() const { return paired; }
 bool Board::isStraightPossible() const { return straightPossible; }

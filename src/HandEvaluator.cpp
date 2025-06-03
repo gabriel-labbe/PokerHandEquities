@@ -23,11 +23,7 @@ HandValue HandEvaluator::evaluate(const Board& board, const std::vector<Card>& h
     }
 
     if (flushSuit != -1) {
-        uint16_t flushMask = 0;
-        for (const auto& c : board.getCards()) {
-            if ((int)c.getSuit() == flushSuit)
-                flushMask |= (1 << (int)c.getRank());
-        }
+        uint16_t flushMask = board.getSuitRankMask(flushSuit);
         for (const auto& c : hand) {
             if ((int)c.getSuit() == flushSuit)
                 flushMask |= (1 << (int)c.getRank());
@@ -55,14 +51,15 @@ HandValue HandEvaluator::evaluate(const Board& board, const std::vector<Card>& h
     }
 
     if (flushSuit != -1) {
+        uint16_t flushMask = board.getSuitRankMask(flushSuit);
+        for (const auto& c : hand) {
+            if ((int)c.getSuit() == flushSuit)
+                flushMask |= (1 << (int)c.getRank());
+        }
         std::vector<Card::Rank> flushRanks;
         for (int r = 14; r >= 2 && flushRanks.size() < 5; --r) {
-            for (const auto& c : board.getCards())
-                if ((int)c.getSuit() == flushSuit && (int)c.getRank() == r)
-                    flushRanks.push_back((Card::Rank)r);
-            for (const auto& c : hand)
-                if ((int)c.getSuit() == flushSuit && (int)c.getRank() == r)
-                    flushRanks.push_back((Card::Rank)r);
+            if (flushMask & (1 << r))
+                flushRanks.push_back((Card::Rank)r);
         }
         return {6, flushRanks};
     }
