@@ -14,7 +14,6 @@ public:
     const std::array<int, 15>& getRankCount() const;
     const std::array<int, 4>& getSuitCount() const;
     uint16_t getRankMask() const;
-    uint16_t getSuitRankMask(int suit) const;
     bool isFlushPossible() const;
     bool isPaired() const;
     bool isStraightPossible() const;
@@ -24,7 +23,6 @@ private:
     std::array<int, 15> rankCount{};
     std::array<int, 4> suitCount{};
     uint16_t rankMask = 0;
-    std::array<uint16_t, 4> suitRankMasks{};
 
     bool flushPossible = false;
     bool paired = false;

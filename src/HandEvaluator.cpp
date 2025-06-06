@@ -5,13 +5,15 @@ HandValue HandEvaluator::evaluate(const Board& board, const std::vector<Card>& h
     std::array<int, 4> suitCount = board.getSuitCount();
     uint16_t rankMask = board.getRankMask();
 
+    // Add hand cards to counts in single pass
     for (const auto& c : hand) {
-        int r = (int)c.getRank();
+        int r = static_cast<int>(c.getRank());
         rankCount[r]++;
-        suitCount[(int)c.getSuit()]++;
+        suitCount[static_cast<int>(c.getSuit())]++;
         rankMask |= (1 << r);
     }
 
+    // Check for flush in single pass
     int flushSuit = -1;
     if (board.isFlushPossible()) {
         for (int s = 0; s < 4; ++s) {
@@ -22,82 +24,112 @@ HandValue HandEvaluator::evaluate(const Board& board, const std::vector<Card>& h
         }
     }
 
+    // If flush exists, check for straight flush first
     if (flushSuit != -1) {
-        uint16_t flushMask = board.getSuitRankMask(flushSuit);
+        uint16_t flushMask = 0;
+        // Build flush mask in single pass through all cards
+        for (const auto& c : board.getCards()) {
+            if (static_cast<int>(c.getSuit()) == flushSuit)
+                flushMask |= (1 << static_cast<int>(c.getRank()));
+        }
         for (const auto& c : hand) {
-            if ((int)c.getSuit() == flushSuit)
-                flushMask |= (1 << (int)c.getRank());
+            if (static_cast<int>(c.getSuit()) == flushSuit)
+                flushMask |= (1 << static_cast<int>(c.getRank()));
         }
 
         int topStraight = getTopStraightRank(flushMask);
         if (topStraight != 0) {
-            return {9, {(Card::Rank)topStraight}};
+            return {9, {static_cast<Card::Rank>(topStraight)}};
         }
     }
 
+    // Single pass to find all rank patterns
+    int fourKind = 0, threeKind = 0, pairs[2] = {0, 0};
+    int pairCount = 0;
+    
     for (int r = 14; r >= 2; --r) {
         if (rankCount[r] == 4) {
-            return {8, {(Card::Rank)r, getHighestKicker(rankCount, r)}};
+            fourKind = r;
+            break; // Four of a kind found, no need to continue
+        } else if (rankCount[r] == 3) {
+            if (threeKind == 0) {
+                threeKind = r;
+            } else if (pairCount < 2) {
+                // Second three-of-a-kind counts as a pair for full house
+                pairs[pairCount++] = r;
+            }
+        } else if (rankCount[r] == 2) {
+            if (pairCount < 2) pairs[pairCount++] = r;
         }
     }
 
-    int three = 0, pair = 0;
-    for (int r = 14; r >= 2; --r) {
-        if (rankCount[r] >= 3 && three == 0) three = r;
-        else if (rankCount[r] >= 2 && pair == 0) pair = r;
-    }
-    if (three && pair) {
-        return {7, {(Card::Rank)three, (Card::Rank)pair}};
+    // Four of a kind
+    if (fourKind) {
+        Card::Rank kicker = getHighestKicker(rankCount, fourKind);
+        return {8, {static_cast<Card::Rank>(fourKind), kicker}};
     }
 
+    // Full house - simplified without extra loop
+    if (threeKind && pairCount > 0) {
+        return {7, {static_cast<Card::Rank>(threeKind), static_cast<Card::Rank>(pairs[0])}};
+    }
+
+    // Regular flush
     if (flushSuit != -1) {
-        uint16_t flushMask = board.getSuitRankMask(flushSuit);
-        for (const auto& c : hand) {
-            if ((int)c.getSuit() == flushSuit)
-                flushMask |= (1 << (int)c.getRank());
+        // Optimized flush rank collection
+        Card::Rank flushRanks[5];
+        int flushCount = 0;
+        
+        for (int r = 14; r >= 2 && flushCount < 5; --r) {
+            // Check if this rank exists in the flush suit
+            bool hasRank = false;
+            for (const auto& c : board.getCards()) {
+                if (static_cast<int>(c.getSuit()) == flushSuit && static_cast<int>(c.getRank()) == r) {
+                    hasRank = true;
+                    break;
+                }
+            }
+            if (!hasRank) {
+                for (const auto& c : hand) {
+                    if (static_cast<int>(c.getSuit()) == flushSuit && static_cast<int>(c.getRank()) == r) {
+                        hasRank = true;
+                        break;
+                    }
+                }
+            }
+            if (hasRank) {
+                flushRanks[flushCount++] = static_cast<Card::Rank>(r);
+            }
         }
-        std::vector<Card::Rank> flushRanks;
-        for (int r = 14; r >= 2 && flushRanks.size() < 5; --r) {
-            if (flushMask & (1 << r))
-                flushRanks.push_back((Card::Rank)r);
-        }
-        return {6, flushRanks};
+        
+        return {6, std::vector<Card::Rank>(flushRanks, flushRanks + flushCount)};
     }
 
+    // Straight
     int topStraight = getTopStraightRank(rankMask);
     if (topStraight != 0) {
-        return {5, {(Card::Rank)topStraight}};
+        return {5, {static_cast<Card::Rank>(topStraight)}};
     }
 
-    three = 0;
-    for (int r = 14; r >= 2; --r) {
-        if (rankCount[r] == 3) {
-            three = r;
-            break;
-        }
-    }
-    if (three) {
-        auto kickers = getTopKickers(rankCount, {three}, 2);
-        return {4, {(Card::Rank)three, kickers[0], kickers[1]}};
+    // Three of a kind
+    if (threeKind) {
+        auto kickers = getTopKickers(rankCount, {threeKind}, 2);
+        return {4, {static_cast<Card::Rank>(threeKind), kickers[0], kickers[1]}};
     }
 
-    std::vector<int> pairs;
-    for (int r = 14; r >= 2; --r) {
-        if (rankCount[r] >= 2)
-            pairs.push_back(r);
-        if (pairs.size() == 2)
-            break;
-    }
-    if (pairs.size() == 2) {
+    // Two pair
+    if (pairCount >= 2) {
         auto kicker = getTopKickers(rankCount, {pairs[0], pairs[1]}, 1);
-        return {3, {(Card::Rank)pairs[0], (Card::Rank)pairs[1], kicker[0]}};
+        return {3, {static_cast<Card::Rank>(pairs[0]), static_cast<Card::Rank>(pairs[1]), kicker[0]}};
     }
 
-    if (pairs.size() == 1) {
+    // One pair
+    if (pairCount == 1) {
         auto kickers = getTopKickers(rankCount, {pairs[0]}, 3);
-        return {2, {(Card::Rank)pairs[0], kickers[0], kickers[1], kickers[2]}};
+        return {2, {static_cast<Card::Rank>(pairs[0]), kickers[0], kickers[1], kickers[2]}};
     }
 
+    // High card
     auto highCards = getTopKickers(rankCount, {}, 5);
     return {1, highCards};
 }
@@ -126,16 +158,17 @@ int HandEvaluator::getTopStraightRank(uint16_t mask) {
 Card::Rank HandEvaluator::getHighestKicker(const std::array<int, 15>& count, int exclude) {
     for (int r = 14; r >= 2; --r) {
         if (r != exclude && count[r] > 0)
-            return (Card::Rank)r;
+            return static_cast<Card::Rank>(r);
     }
     return Card::Rank::Two;
 }
 
 std::vector<Card::Rank> HandEvaluator::getTopKickers(const std::array<int, 15>& count, const std::vector<int>& exclude, int needed) {
     std::vector<Card::Rank> result;
-    for (int r = 14; r >= 2 && result.size() < needed; --r) {
+    result.reserve(needed); // Pre-allocate to avoid reallocations
+    for (int r = 14; r >= 2 && static_cast<int>(result.size()) < needed; --r) {
         if (std::find(exclude.begin(), exclude.end(), r) == exclude.end() && count[r] > 0)
-            result.push_back((Card::Rank)r);
+            result.push_back(static_cast<Card::Rank>(r));
     }
     return result;
 }
