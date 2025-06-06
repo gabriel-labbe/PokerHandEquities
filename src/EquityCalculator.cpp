@@ -19,18 +19,14 @@ int compareHands(const HandValue& a, const HandValue& b) {
     return 0;
 }
 
-double EquityCalculator::calculateEquity(const std::vector<Card>& hand1, const std::vector<Card>& hand2, int iterations) {
+double EquityCalculator::calculateEquity(const std::vector<std::vector<Card>>& group1, const std::vector<std::vector<Card>>& group2, int iterations) {
     Deck fullDeck;
-    std::vector<Card> remaining = fullDeck.getCards();
+    std::vector<Card> full_cards = fullDeck.getCards();
 
-    auto removeCard = [&](const Card& c) {
-        remaining.erase(std::remove_if(remaining.begin(), remaining.end(), [&](const Card& d) {
-            return d.getRank() == c.getRank() && d.getSuit() == c.getSuit();
-        }), remaining.end());
-    };
-
-    for (const auto& c : hand1) removeCard(c);
-    for (const auto& c : hand2) removeCard(c);
+    // Assume groups are not empty
+    if (group1.empty() || group2.empty()) {
+        return 0.0; // Or handle error
+    }
 
     // Determine the number of threads to use based on hardware concurrency
     unsigned int num_threads = std::thread::hardware_concurrency();
@@ -53,15 +49,28 @@ double EquityCalculator::calculateEquity(const std::vector<Card>& hand1, const s
 
         // Launch a thread for each portion of the iterations
         threads.emplace_back([&, i, start, end]() {
-            // Each thread works on a local copy of the remaining cards to avoid data races
-            std::vector<Card> local_remaining = remaining;
-
             // Initialize a random number generator unique to this thread
             std::random_device rd;
             std::mt19937 g(rd());
 
             int local_win = 0, local_tie = 0;
             for (int j = start; j < end; ++j) {
+                // Select random hands from groups
+                size_t h1_idx = g() % group1.size();
+                size_t h2_idx = g() % group2.size();
+                const auto& selected_hand1 = group1[h1_idx];
+                const auto& selected_hand2 = group2[h2_idx];
+
+                // Create local remaining and remove selected cards
+                std::vector<Card> local_remaining = full_cards;
+                auto removeCard = [&](const Card& c) {
+                    local_remaining.erase(std::remove_if(local_remaining.begin(), local_remaining.end(), [&](const Card& d) {
+                        return d.getRank() == c.getRank() && d.getSuit() == c.getSuit();
+                    }), local_remaining.end());
+                };
+                for (const auto& c : selected_hand1) removeCard(c);
+                for (const auto& c : selected_hand2) removeCard(c);
+
                 // Shuffle the local deck for this simulation
                 std::shuffle(local_remaining.begin(), local_remaining.end(), g);
 
@@ -70,8 +79,8 @@ double EquityCalculator::calculateEquity(const std::vector<Card>& hand1, const s
                 Board board(boardCards);
 
                 // Evaluate both hands
-                HandValue val1 = HandEvaluator::evaluate(board, hand1);
-                HandValue val2 = HandEvaluator::evaluate(board, hand2);
+                HandValue val1 = HandEvaluator::evaluate(board, selected_hand1);
+                HandValue val2 = HandEvaluator::evaluate(board, selected_hand2);
 
                 int cmp = compareHands(val1, val2);
                 if (cmp > 0) {
