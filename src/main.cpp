@@ -13,7 +13,7 @@ int main() {
         Card(Card::Rank::Ten, Card::Suit::Spades),
         Card(Card::Rank::Nine, Card::Suit::Spades)
     };
-    int iterations = 100000;
+    int iterations = 2500000;
 
     auto start = std::chrono::steady_clock::now();
     double equity = EquityCalculator::calculateEquity(hand1, hand2, iterations);

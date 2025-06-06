@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <random>
 #include <chrono>
+#include <thread>
+#include <vector>
 
 int compareHands(const HandValue& a, const HandValue& b) {
     if (a.rankCategory > b.rankCategory) return 1;
@@ -30,27 +32,72 @@ double EquityCalculator::calculateEquity(const std::vector<Card>& hand1, const s
     for (const auto& c : hand1) removeCard(c);
     for (const auto& c : hand2) removeCard(c);
 
-    int win1 = 0, tie = 0;
-    for (int i = 0; i < iterations; ++i) {
-        // Shuffle
-        unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-        std::shuffle(remaining.begin(), remaining.end(), std::default_random_engine(seed));
+    // Determine the number of threads to use based on hardware concurrency
+    unsigned int num_threads = std::thread::hardware_concurrency();
+    if (num_threads == 0) num_threads = 1; // Fallback in case hardware_concurrency fails
 
-        // Take first 5
-        std::vector<Card> boardCards(remaining.begin(), remaining.begin() + 5);
-        Board board(boardCards);
+    int iters_per_thread = iterations / num_threads;
+    int remainder = iterations % num_threads;
 
-        HandValue val1 = HandEvaluator::evaluate(board, hand1);
-        HandValue val2 = HandEvaluator::evaluate(board, hand2);
+    // Vectors to hold win and tie counts for each thread
+    std::vector<int> wins(num_threads, 0);
+    std::vector<int> ties(num_threads, 0);
 
-        int cmp = compareHands(val1, val2);
-        if (cmp > 0) {
-            win1++;
-        } else if (cmp == 0) {
-            tie++;
-        }
+    // Vector to hold the threads
+    std::vector<std::thread> threads;
+
+    for (unsigned int i = 0; i < num_threads; ++i) {
+        int start = i * iters_per_thread;
+        int end = start + iters_per_thread;
+        if (i == num_threads - 1) end += remainder;
+
+        // Launch a thread for each portion of the iterations
+        threads.emplace_back([&, i, start, end]() {
+            // Each thread works on a local copy of the remaining cards to avoid data races
+            std::vector<Card> local_remaining = remaining;
+
+            // Initialize a random number generator unique to this thread
+            std::random_device rd;
+            std::mt19937 g(rd());
+
+            int local_win = 0, local_tie = 0;
+            for (int j = start; j < end; ++j) {
+                // Shuffle the local deck for this simulation
+                std::shuffle(local_remaining.begin(), local_remaining.end(), g);
+
+                // Select the first 5 cards as the board
+                std::vector<Card> boardCards(local_remaining.begin(), local_remaining.begin() + 5);
+                Board board(boardCards);
+
+                // Evaluate both hands
+                HandValue val1 = HandEvaluator::evaluate(board, hand1);
+                HandValue val2 = HandEvaluator::evaluate(board, hand2);
+
+                int cmp = compareHands(val1, val2);
+                if (cmp > 0) {
+                    local_win++;
+                } else if (cmp == 0) {
+                    local_tie++;
+                }
+            }
+
+            // Store the results in the shared vectors (safe since each thread writes to its own index)
+            wins[i] = local_win;
+            ties[i] = local_tie;
+        });
     }
 
-    double equity = (win1 + tie * 0.5) / static_cast<double>(iterations) * 100.0;
+    // Wait for all threads to complete their work
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    // Aggregate the results from all threads
+    int total_win1 = 0, total_tie = 0;
+    for (int w : wins) total_win1 += w;
+    for (int t : ties) total_tie += t;
+
+    // Calculate the equity
+    double equity = (total_win1 + total_tie * 0.5) / static_cast<double>(iterations) * 100.0;
     return equity;
 }
