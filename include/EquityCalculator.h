@@ -7,7 +7,7 @@
 
 class EquityCalculator {
 public:
-    static double calculateEquity(const std::vector<Card>& hand1, const std::vector<Card>& hand2, int iterations);
+    static double calculateEquityMonteCarlo(const std::vector<Card>& hand1, const std::vector<Card>& hand2, int iterations);
     static double calculateExactEquity(const std::vector<Card>& hand1, const std::vector<Card>& hand2);
 };
 

@@ -24,7 +24,7 @@ int main() {
     std::cout << "1. Monte Carlo Method (1,000,000 iterations):" << std::endl;
     int iterations = 1000000;
     auto start = std::chrono::steady_clock::now();
-    double mcEquity = EquityCalculator::calculateEquity(hand1, hand2, iterations);
+    double mcEquity = EquityCalculator::calculateEquityMonteCarlo(hand1, hand2, iterations);
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> mcElapsed = end - start;
 

@@ -20,7 +20,7 @@ int compareHands(const HandValue& a, const HandValue& b) {
     return 0;
 }
 
-double EquityCalculator::calculateEquity(const std::vector<Card>& hand1, const std::vector<Card>& hand2, int iterations) {
+std::vector<Card> getRemainingDeck(const std::vector<Card>& hand1, const std::vector<Card>& hand2) {
     Deck fullDeck;
     std::vector<Card> remaining = fullDeck.getCards();
 
@@ -32,6 +32,12 @@ double EquityCalculator::calculateEquity(const std::vector<Card>& hand1, const s
 
     for (const auto& c : hand1) removeCard(c);
     for (const auto& c : hand2) removeCard(c);
+
+    return remaining;
+}
+
+double EquityCalculator::calculateEquityMonteCarlo(const std::vector<Card>& hand1, const std::vector<Card>& hand2, int iterations) {
+    std::vector<Card> remaining = getRemainingDeck(hand1, hand2);
 
     // Determine the number of threads to use based on hardware concurrency
     unsigned int num_threads = std::thread::hardware_concurrency();
@@ -104,29 +110,14 @@ double EquityCalculator::calculateEquity(const std::vector<Card>& hand1, const s
 }
 
 double EquityCalculator::calculateExactEquity(const std::vector<Card>& hand1, const std::vector<Card>& hand2) {
-    Deck fullDeck;
-    std::vector<Card> remaining = fullDeck.getCards();
-
-    // Remove cards from both hands to avoid overlapping
-    auto removeCard = [&](const Card& c) {
-        remaining.erase(std::remove_if(remaining.begin(), remaining.end(), [&](const Card& d) {
-            return d.getRank() == c.getRank() && d.getSuit() == c.getSuit();
-        }), remaining.end());
-    };
-
-    for (const auto& c : hand1) removeCard(c);
-    for (const auto& c : hand2) removeCard(c);
-
-    std::cout << "Calculating exact equity by evaluating all possible boards..." << std::endl;
-    std::cout << "Remaining cards in deck: " << remaining.size() << std::endl;
+    std::vector<Card> remaining = getRemainingDeck(hand1, hand2);
 
     long long totalBoards = 0;
     long long hand1Wins = 0;
     long long ties = 0;
 
     // Generate all possible 5-card combinations from remaining cards
-    // Using nested loops to generate combinations C(48,5)
-    int n = remaining.size(); // Should be 48 cards remaining
+    int n = remaining.size();
     
     for (int i = 0; i < n - 4; ++i) {
         for (int j = i + 1; j < n - 3; ++j) {
@@ -152,21 +143,11 @@ double EquityCalculator::calculateExactEquity(const std::vector<Card>& hand1, co
                         }
 
                         totalBoards++;
-
-                        // Progress indicator every 100,000 boards
-                        if (totalBoards % 100000 == 0) {
-                            std::cout << "Processed " << totalBoards << " boards..." << std::endl;
-                        }
                     }
                 }
             }
         }
     }
-
-    std::cout << "Total boards evaluated: " << totalBoards << std::endl;
-    std::cout << "Hand 1 wins: " << hand1Wins << std::endl;
-    std::cout << "Ties: " << ties << std::endl;
-    std::cout << "Hand 2 wins: " << (totalBoards - hand1Wins - ties) << std::endl;
 
     // Calculate exact equity
     double equity = (hand1Wins + ties * 0.5) / static_cast<double>(totalBoards) * 100.0;
