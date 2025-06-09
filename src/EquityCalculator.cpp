@@ -6,6 +6,7 @@
 #include <chrono>
 #include <thread>
 #include <vector>
+#include <iostream>
 
 int compareHands(const HandValue& a, const HandValue& b) {
     if (a.rankCategory > b.rankCategory) return 1;
@@ -106,6 +107,7 @@ double EquityCalculator::calculateExactEquity(const std::vector<Card>& hand1, co
     Deck fullDeck;
     std::vector<Card> remaining = fullDeck.getCards();
 
+    // Remove cards from both hands to avoid overlapping
     auto removeCard = [&](const Card& c) {
         remaining.erase(std::remove_if(remaining.begin(), remaining.end(), [&](const Card& d) {
             return d.getRank() == c.getRank() && d.getSuit() == c.getSuit();
@@ -115,30 +117,58 @@ double EquityCalculator::calculateExactEquity(const std::vector<Card>& hand1, co
     for (const auto& c : hand1) removeCard(c);
     for (const auto& c : hand2) removeCard(c);
 
-    long long win = 0, tie = 0, loss = 0;
-    std::vector<Card> current;
+    std::cout << "Calculating exact equity by evaluating all possible boards..." << std::endl;
+    std::cout << "Remaining cards in deck: " << remaining.size() << std::endl;
 
-    auto generateBoards = [&](auto&& self, size_t start, std::vector<Card>& current, int depth) -> void {
-        if (depth == 5) {
-            Board board(current);
-            HandValue val1 = HandEvaluator::evaluate(board, hand1);
-            HandValue val2 = HandEvaluator::evaluate(board, hand2);
-            int cmp = compareHands(val1, val2);
-            if (cmp > 0) win++;
-            else if (cmp == 0) tie++;
-            else loss++;
-            return;
+    long long totalBoards = 0;
+    long long hand1Wins = 0;
+    long long ties = 0;
+
+    // Generate all possible 5-card combinations from remaining cards
+    // Using nested loops to generate combinations C(48,5)
+    int n = remaining.size(); // Should be 48 cards remaining
+    
+    for (int i = 0; i < n - 4; ++i) {
+        for (int j = i + 1; j < n - 3; ++j) {
+            for (int k = j + 1; k < n - 2; ++k) {
+                for (int l = k + 1; l < n - 1; ++l) {
+                    for (int m = l + 1; m < n; ++m) {
+                        // Create board with these 5 cards
+                        std::vector<Card> boardCards = {
+                            remaining[i], remaining[j], remaining[k], remaining[l], remaining[m]
+                        };
+                        Board board(boardCards);
+
+                        // Evaluate both hands on this board
+                        HandValue val1 = HandEvaluator::evaluate(board, hand1);
+                        HandValue val2 = HandEvaluator::evaluate(board, hand2);
+
+                        // Compare hands
+                        int cmp = compareHands(val1, val2);
+                        if (cmp > 0) {
+                            hand1Wins++;
+                        } else if (cmp == 0) {
+                            ties++;
+                        }
+
+                        totalBoards++;
+
+                        // Progress indicator every 100,000 boards
+                        if (totalBoards % 100000 == 0) {
+                            std::cout << "Processed " << totalBoards << " boards..." << std::endl;
+                        }
+                    }
+                }
+            }
         }
-        for (size_t i = start; i < remaining.size(); ++i) {
-            current.push_back(remaining[i]);
-            self(self, i + 1, current, depth + 1);
-            current.pop_back();
-        }
-    };
+    }
 
-    generateBoards(generateBoards, 0, current, 0);
+    std::cout << "Total boards evaluated: " << totalBoards << std::endl;
+    std::cout << "Hand 1 wins: " << hand1Wins << std::endl;
+    std::cout << "Ties: " << ties << std::endl;
+    std::cout << "Hand 2 wins: " << (totalBoards - hand1Wins - ties) << std::endl;
 
-    long long total = win + tie + loss;
-    double equity = (static_cast<double>(win) + static_cast<double>(tie) * 0.5) / static_cast<double>(total) * 100.0;
+    // Calculate exact equity
+    double equity = (hand1Wins + ties * 0.5) / static_cast<double>(totalBoards) * 100.0;
     return equity;
 }
