@@ -1,7 +1,6 @@
 #include "../include/EquityCalculator.h"
 #include "../include/Deck.h"
 #include "../include/Board.h"
-#include <omp.h>
 #include <algorithm>
 #include <random>
 #include <chrono>
@@ -119,36 +118,70 @@ double EquityCalculator::calculateExactEquity(const std::vector<Card>& hand1, co
 
     // Generate all possible 5-card combinations from remaining cards
     int n = remaining.size();
-    
-    #pragma omp parallel for reduction(+:hand1Wins, ties, totalBoards)
-    for (int i = 0; i < n - 4; ++i) {
-        for (int j = i + 1; j < n - 3; ++j) {
-            for (int k = j + 1; k < n - 2; ++k) {
-                for (int l = k + 1; l < n - 1; ++l) {
-                    for (int m = l + 1; m < n; ++m) {
-                        // Create board with these 5 cards
-                        std::vector<Card> boardCards = {
-                            remaining[i], remaining[j], remaining[k], remaining[l], remaining[m]
-                        };
-                        Board board(boardCards);
 
-                        // Evaluate both hands on this board
-                        HandValue val1 = HandEvaluator::evaluate(board, hand1);
-                        HandValue val2 = HandEvaluator::evaluate(board, hand2);
+    unsigned int num_threads = std::thread::hardware_concurrency();
+    if (num_threads == 0) num_threads = 1;
 
-                        // Compare hands
-                        int cmp = compareHands(val1, val2);
-                        if (cmp > 0) {
-                            hand1Wins++;
-                        } else if (cmp == 0) {
-                            ties++;
+    std::vector<long long> hand1Wins_vec(num_threads, 0);
+    std::vector<long long> ties_vec(num_threads, 0);
+    std::vector<long long> totalBoards_vec(num_threads, 0);
+
+    std::vector<std::thread> threads;
+
+    int range = (n - 4) / num_threads;
+    int remainder = (n - 4) % num_threads;
+
+    for (unsigned int t = 0; t < num_threads; ++t) {
+        int start_i = t * range;
+        int end_i = start_i + range;
+        if (t == num_threads - 1) end_i += remainder;
+
+        threads.emplace_back([&, t, start_i, end_i]() {
+            long long local_hand1Wins = 0;
+            long long local_ties = 0;
+            long long local_totalBoards = 0;
+
+            for (int i = start_i; i < end_i; ++i) {
+                for (int j = i + 1; j < n - 3; ++j) {
+                    for (int k = j + 1; k < n - 2; ++k) {
+                        for (int l = k + 1; l < n - 1; ++l) {
+                            for (int m = l + 1; m < n; ++m) {
+                                std::vector<Card> boardCards = {
+                                    remaining[i], remaining[j], remaining[k], remaining[l], remaining[m]
+                                };
+                                Board board(boardCards);
+
+                                HandValue val1 = HandEvaluator::evaluate(board, hand1);
+                                HandValue val2 = HandEvaluator::evaluate(board, hand2);
+
+                                int cmp = compareHands(val1, val2);
+                                if (cmp > 0) {
+                                    local_hand1Wins++;
+                                } else if (cmp == 0) {
+                                    local_ties++;
+                                }
+
+                                local_totalBoards++;
+                            }
                         }
-
-                        totalBoards++;
                     }
                 }
             }
-        }
+
+            hand1Wins_vec[t] = local_hand1Wins;
+            ties_vec[t] = local_ties;
+            totalBoards_vec[t] = local_totalBoards;
+        });
+    }
+
+    for (auto& th : threads) {
+        th.join();
+    }
+
+    for (unsigned int t = 0; t < num_threads; ++t) {
+        hand1Wins += hand1Wins_vec[t];
+        ties += ties_vec[t];
+        totalBoards += totalBoards_vec[t];
     }
 
     // Calculate exact equity
