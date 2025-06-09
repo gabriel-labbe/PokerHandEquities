@@ -153,3 +153,72 @@ double EquityCalculator::calculateExactEquity(const std::vector<Card>& hand1, co
     double equity = (hand1Wins + ties * 0.5) / static_cast<double>(totalBoards) * 100.0;
     return equity;
 }
+
+void generateCombinationsRecursive(const std::vector<Card>& remaining, int start, int depth, std::vector<Card>& current, long long& hand1Wins, long long& ties, const std::vector<Card>& hand1, const std::vector<Card>& hand2, long long& totalBoards) {
+    if (depth == 5) {
+        Board board(current);
+        HandValue val1 = HandEvaluator::evaluate(board, hand1);
+        HandValue val2 = HandEvaluator::evaluate(board, hand2);
+        int cmp = compareHands(val1, val2);
+        if (cmp > 0) {
+            hand1Wins++;
+        } else if (cmp == 0) {
+            ties++;
+        }
+        totalBoards++;
+        return;
+    }
+
+    for (int i = start; i < remaining.size(); ++i) {
+        current.push_back(remaining[i]);
+        generateCombinationsRecursive(remaining, i + 1, depth + 1, current, hand1Wins, ties, hand1, hand2, totalBoards);
+        current.pop_back();
+    }
+}
+
+double EquityCalculator::calculateExactEquityRecursive(const std::vector<Card>& hand1, const std::vector<Card>& hand2) {
+    std::vector<Card> remaining = getRemainingDeck(hand1, hand2);
+    long long hand1Wins = 0;
+    long long ties = 0;
+    long long totalBoards = 0;
+    std::vector<Card> current;
+    generateCombinationsRecursive(remaining, 0, 0, current, hand1Wins, ties, hand1, hand2, totalBoards);
+    double equity = (hand1Wins + ties * 0.5) / static_cast<double>(totalBoards) * 100.0;
+    return equity;
+}
+
+double EquityCalculator::calculateExactEquityPermutation(const std::vector<Card>& hand1, const std::vector<Card>& hand2) {
+    std::vector<Card> remaining = getRemainingDeck(hand1, hand2);
+    int n = remaining.size();
+    if (n < 5) return 0.0; // Not enough cards
+
+    std::vector<int> mask(n - 5, 0);
+    mask.insert(mask.end(), 5, 1);
+    // No need to sort since it's already 0s followed by 1s
+
+    long long hand1Wins = 0;
+    long long ties = 0;
+    long long totalBoards = 0;
+
+    do {
+        std::vector<Card> boardCards;
+        for (int i = 0; i < n; ++i) {
+            if (mask[i]) {
+                boardCards.push_back(remaining[i]);
+            }
+        }
+        Board board(boardCards);
+        HandValue val1 = HandEvaluator::evaluate(board, hand1);
+        HandValue val2 = HandEvaluator::evaluate(board, hand2);
+        int cmp = compareHands(val1, val2);
+        if (cmp > 0) {
+            hand1Wins++;
+        } else if (cmp == 0) {
+            ties++;
+        }
+        totalBoards++;
+    } while (std::next_permutation(mask.begin(), mask.end()));
+
+    double equity = (hand1Wins + ties * 0.5) / static_cast<double>(totalBoards) * 100.0;
+    return equity;
+}
