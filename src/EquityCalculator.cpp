@@ -7,6 +7,8 @@
 #include <thread>
 #include <vector>
 #include <iostream>
+#include <cstdint>
+#include <unordered_map>
 
 int compareHands(const HandValue& a, const HandValue& b) {
     if (a.rankCategory > b.rankCategory) return 1;
@@ -107,6 +109,40 @@ double EquityCalculator::calculateEquityMonteCarlo(const std::vector<Card>& hand
     // Calculate the equity
     double equity = (total_win1 + total_tie * 0.5) / static_cast<double>(iterations) * 100.0;
     return equity;
+}
+
+std::unordered_map<uint64_t, double> EquityCalculator::equityMap;
+
+uint32_t packHand(const std::vector<Card>& hand) {
+    int id1 = hand[0].getId();
+    int id2 = hand[1].getId();
+    if (id1 > id2) std::swap(id1, id2);
+    return (static_cast<uint32_t>(id1) << 16) | id2;  // Use 16 bits for safety
+}
+
+void EquityCalculator::precomputeAllEquities() {
+    Deck deck;
+    auto hands = deck.getAllHandCombinations();
+    for (size_t i = 0; i < hands.size(); ++i) {
+        for (size_t j = i + 1; j < hands.size(); ++j) {
+            double equity = calculateExactEquity(hands[i], hands[j]);
+            uint64_t key_ij = ((uint64_t)packHand(hands[i]) << 32) | packHand(hands[j]);
+            uint64_t key_ji = ((uint64_t)packHand(hands[j]) << 32) | packHand(hands[i]);
+            equityMap[key_ij] = equity;
+            equityMap[key_ji] = 100.0 - equity;
+        }
+    }
+}
+
+double EquityCalculator::getPrecomputedEquity(const std::vector<Card>& hand1, const std::vector<Card>& hand2) {
+    uint64_t key = ((uint64_t)packHand(hand1) << 32) | packHand(hand2);
+    auto it = equityMap.find(key);
+    if (it != equityMap.end()) {
+        return it->second;
+    } else {
+        // Compute on the fly if not precomputed
+        return calculateExactEquity(hand1, hand2);
+    }
 }
 
 double EquityCalculator::calculateExactEquity(const std::vector<Card>& hand1, const std::vector<Card>& hand2) {
