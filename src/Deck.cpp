@@ -22,13 +22,3 @@ void Deck::shuffle() {
 std::vector<Card> Deck::getCards() const {
     return cards;
 }
-
-std::vector<std::vector<Card>> Deck::getAllHandCombinations() const {
-    std::vector<std::vector<Card>> combinations;
-    for (size_t i = 0; i < cards.size(); ++i) {
-        for (size_t j = i + 1; j < cards.size(); ++j) {
-            combinations.push_back({cards[i], cards[j]});
-        }
-    }
-    return combinations;
-}

@@ -10,7 +10,6 @@ public:
 
     void shuffle();
     std::vector<Card> getCards() const;
-    std::vector<std::vector<Card>> getAllHandCombinations() const;
 
 private:
     std::vector<Card> cards;

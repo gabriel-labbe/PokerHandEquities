@@ -48,10 +48,6 @@ char Card::suitToChar() const {
     }
 }
 
-int Card::getId() const {
-    return static_cast<int>(rank) * 4 + static_cast<int>(suit);
-}
-
 std::string Card::getString() const {
     return std::string(1, rankToChar()) + suitToChar();
 }
