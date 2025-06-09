@@ -32,8 +32,8 @@ int main() {
     std::cout << "   Time taken: " << mcElapsed.count() << " seconds" << std::endl;
     std::cout << std::endl;
 
-    // Test exact calculation method (loops)
-    std::cout << "2. Exact Calculation Method (nested loops):" << std::endl;
+    // Test exact calculation method
+    std::cout << "2. Exact Calculation Method (all possible boards):" << std::endl;
     start = std::chrono::steady_clock::now();
     double exactEquity = EquityCalculator::calculateExactEquity(hand1, hand2);
     end = std::chrono::steady_clock::now();
@@ -43,37 +43,12 @@ int main() {
     std::cout << "   Time taken: " << exactElapsed.count() << " seconds" << std::endl;
     std::cout << std::endl;
 
-    // Test recursive exact calculation
-    std::cout << "3. Exact Calculation Method (recursive):" << std::endl;
-    start = std::chrono::steady_clock::now();
-    double recursiveEquity = EquityCalculator::calculateExactEquityRecursive(hand1, hand2);
-    end = std::chrono::steady_clock::now();
-    std::chrono::duration<double> recursiveElapsed = end - start;
-
-    std::cout << "   Exact equity: " << recursiveEquity << "%" << std::endl;
-    std::cout << "   Time taken: " << recursiveElapsed.count() << " seconds" << std::endl;
-    std::cout << std::endl;
-
-    // Test permutation exact calculation
-    std::cout << "4. Exact Calculation Method (next_permutation):" << std::endl;
-    start = std::chrono::steady_clock::now();
-    double permEquity = EquityCalculator::calculateExactEquityPermutation(hand1, hand2);
-    end = std::chrono::steady_clock::now();
-    std::chrono::duration<double> permElapsed = end - start;
-
-    std::cout << "   Exact equity: " << permEquity << "%" << std::endl;
-    std::cout << "   Time taken: " << permElapsed.count() << " seconds" << std::endl;
-    std::cout << std::endl;
-
     // Compare results
-    std::cout << "=== Comparison of Exact Methods ===" << std::endl;
-    std::cout << "Nested Loops Time: " << exactElapsed.count() << "s" << std::endl;
-    std::cout << "Recursive Time:    " << recursiveElapsed.count() << "s" << std::endl;
-    std::cout << "Permutation Time:  " << permElapsed.count() << "s" << std::endl;
-    std::cout << std::endl;
+    std::cout << "=== Comparison ===" << std::endl;
     std::cout << "Monte Carlo equity: " << mcEquity << "%" << std::endl;
-    std::cout << "Exact equity (loops): " << exactEquity << "%" << std::endl;
-    std::cout << "Difference from Monte Carlo: " << std::abs(mcEquity - exactEquity) << "%" << std::endl;
+    std::cout << "Exact equity:       " << exactEquity << "%" << std::endl;
+    std::cout << "Difference:         " << std::abs(mcEquity - exactEquity) << "%" << std::endl;
+    std::cout << "Speed ratio:        " << (exactElapsed.count() / mcElapsed.count()) << "x slower for exact method" << std::endl;
 
     return 0;
 }
