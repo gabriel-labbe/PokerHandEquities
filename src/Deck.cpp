@@ -4,14 +4,7 @@
 #include <chrono>
 
 Deck::Deck() {
-    for (int suit = 0; suit < 4; ++suit) {
-        for (int rank = static_cast<int>(Card::Rank::Two); rank <= static_cast<int>(Card::Rank::Ace); ++rank) {
-            cards.emplace_back(
-                static_cast<Card::Rank>(rank),
-                static_cast<Card::Suit>(suit)
-            );
-        }
-    }
+    cards = createFullDeck();
 }
 
 void Deck::shuffle() {
@@ -21,4 +14,34 @@ void Deck::shuffle() {
 
 std::vector<Card> Deck::getCards() const {
     return cards;
+}
+
+std::vector<Card> Deck::createFullDeck() {
+    std::vector<Card> fullDeck;
+    for (int suit = 0; suit < 4; ++suit) {
+        for (int rank = static_cast<int>(Card::Rank::Two); rank <= static_cast<int>(Card::Rank::Ace); ++rank) {
+            fullDeck.emplace_back(
+                static_cast<Card::Rank>(rank),
+                static_cast<Card::Suit>(suit)
+            );
+        }
+    }
+    return fullDeck;
+}
+
+std::vector<std::vector<Card>> Deck::generateAllHandCombinations() {
+    std::vector<std::vector<Card>> handCombinations;
+    
+    // Create a full deck using the helper method
+    std::vector<Card> fullDeck = createFullDeck();
+    
+    // Generate all possible 2-card combinations
+    for (size_t i = 0; i < fullDeck.size(); ++i) {
+        for (size_t j = i + 1; j < fullDeck.size(); ++j) {
+            std::vector<Card> hand = {fullDeck[i], fullDeck[j]};
+            handCombinations.push_back(hand);
+        }
+    }
+    
+    return handCombinations;
 }

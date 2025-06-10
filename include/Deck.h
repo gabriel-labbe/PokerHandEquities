@@ -10,9 +10,15 @@ public:
 
     void shuffle();
     std::vector<Card> getCards() const;
+    
+    // Generate all possible 2-card hand combinations
+    static std::vector<std::vector<Card>> generateAllHandCombinations();
 
 private:
     std::vector<Card> cards;
+    
+    // Helper method to create a full deck
+    static std::vector<Card> createFullDeck();
 };
 
 #endif
