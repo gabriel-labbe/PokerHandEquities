@@ -52,6 +52,12 @@ std::string Card::getString() const {
     return std::string(1, rankToChar()) + suitToChar();
 }
 
+int Card::getId() const {
+    int rankVal = static_cast<int>(rank) - 2; // 0-12 for Two-Ace
+    int suitVal = static_cast<int>(suit); // 0-3
+    return suitVal * 13 + rankVal;
+}
+
 std::ostream& operator<<(std::ostream& os, const Card& card) {
     os << card.getString();
     return os;
