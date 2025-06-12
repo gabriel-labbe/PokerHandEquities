@@ -29,8 +29,8 @@ std::vector<Card> Deck::createFullDeck() {
     return fullDeck;
 }
 
-std::vector<std::vector<Card>> Deck::generateAllHandCombinations() {
-    std::vector<std::vector<Card>> handCombinations;
+std::vector<Hand> Deck::generateAllHandCombinations() {
+    std::vector<Hand> handCombinations;
     
     // Create a full deck using the helper method
     std::vector<Card> fullDeck = createFullDeck();
@@ -38,8 +38,7 @@ std::vector<std::vector<Card>> Deck::generateAllHandCombinations() {
     // Generate all possible 2-card combinations
     for (size_t i = 0; i < fullDeck.size(); ++i) {
         for (size_t j = i + 1; j < fullDeck.size(); ++j) {
-            std::vector<Card> hand = {fullDeck[i], fullDeck[j]};
-            handCombinations.push_back(hand);
+            handCombinations.emplace_back(fullDeck[i], fullDeck[j]);
         }
     }
     

@@ -4,20 +4,11 @@
 #include <array>
 #include "../include/Card.h"
 #include "../include/Deck.h"
+#include "../include/Hand.h"
 #include "../include/Board.h"
 #include "../include/HandEvaluator.h"
 
-// Structure to represent a 2-card hand
-struct Hand {
-    Card card1, card2;
-    uint64_t mask;
-    
-    Hand(Card c1, Card c2) : card1(c1), card2(c2) {
-        mask = (1ULL << c1.getId()) | (1ULL << c2.getId());
-    }
-};
-
-// Structure to store equity data for each hand pair
+ // Structure to store equity data for each hand pair
 struct EquityData {
     int wins = 0;
     int ties = 0;
@@ -36,22 +27,7 @@ int main() {
     std::vector<Hand> allHands;
     std::cout << "Step 1: Generating all hand combinations..." << std::endl;
     
-    for (int suit1 = 0; suit1 < 4; suit1++) {
-        for (int rank1 = 0; rank1 < 13; rank1++) {
-            for (int suit2 = 0; suit2 < 4; suit2++) {
-                for (int rank2 = 0; rank2 < 13; rank2++) {
-                    // Avoid duplicate hands (ensure card1 < card2 by ID)
-                    int id1 = suit1 * 13 + rank1;
-                    int id2 = suit2 * 13 + rank2;
-                    if (id1 < id2) {
-                        Card c1(static_cast<Card::Rank>(rank1 + 2), static_cast<Card::Suit>(suit1));
-                        Card c2(static_cast<Card::Rank>(rank2 + 2), static_cast<Card::Suit>(suit2));
-                        allHands.emplace_back(c1, c2);
-                    }
-                }
-            }
-        }
-    }
+    allHands = Deck::generateAllHandCombinations();
     
     std::cout << "Generated " << allHands.size() << " unique hand combinations" << std::endl;
     
@@ -88,7 +64,7 @@ int main() {
     // Find all hands that don't overlap with the board
     std::vector<int> validHandIndices;
     for (int i = 0; i < numHands; i++) {
-        if ((allHands[i].mask & boardMask) == 0) {
+        if ((allHands[i].getMask() & boardMask) == 0) {
             validHandIndices.push_back(i);
         }
     }
@@ -100,7 +76,7 @@ int main() {
     for (size_t i = 0; i < validHandIndices.size(); i++) {
         int handIdx = validHandIndices[i];
         const Hand& hand = allHands[handIdx];
-        std::vector<Card> handCards = {hand.card1, hand.card2};
+        std::vector<Card> handCards = {hand.getCard1(), hand.getCard2()};
         handStrengths[i] = HandEvaluator::evaluate(board, handCards);
     }
     
@@ -112,7 +88,7 @@ int main() {
             int hand2Idx = validHandIndices[j];
             
             // Check if hands don't share cards
-            if ((allHands[hand1Idx].mask & allHands[hand2Idx].mask) == 0) {
+            if ((allHands[hand1Idx].getMask() & allHands[hand2Idx].getMask()) == 0) {
                 const HandValue& strength1 = handStrengths[i];
                 const HandValue& strength2 = handStrengths[j];
                 
@@ -144,12 +120,12 @@ int main() {
             int hand1Idx = validHandIndices[i];
             int hand2Idx = validHandIndices[j];
             
-            if ((allHands[hand1Idx].mask & allHands[hand2Idx].mask) == 0) {
+            if ((allHands[hand1Idx].getMask() & allHands[hand2Idx].getMask()) == 0) {
                 const Hand& hand1 = allHands[hand1Idx];
                 const Hand& hand2 = allHands[hand2Idx];
                 const EquityData& equity = equityTable[hand1Idx][hand2Idx];
                 
-                std::cout << hand1.card1 << hand1.card2 << " vs " << hand2.card1 << hand2.card2 
+                std::cout << hand1.getCard1() << hand1.getCard2() << " vs " << hand2.getCard1() << hand2.getCard2() 
                          << ": " << equity.wins << "W-" << equity.ties << "T-" << equity.total << "T "
                          << "(Equity: " << equity.getEquity() << ")" << std::endl;
                 sampleCount++;

@@ -2,6 +2,7 @@
 #define DECK_H
 
 #include "Card.h"
+#include "Hand.h"
 #include <vector>
 
 class Deck {
@@ -12,7 +13,7 @@ public:
     std::vector<Card> getCards() const;
     
     // Generate all possible 2-card hand combinations
-    static std::vector<std::vector<Card>> generateAllHandCombinations();
+    static std::vector<Hand> generateAllHandCombinations();
 
 private:
     std::vector<Card> cards;
