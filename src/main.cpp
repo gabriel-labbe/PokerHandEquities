@@ -67,8 +67,7 @@ int main() {
                         for (size_t i = 0; i < validHandIndices.size(); i++) {
                             int handIdx = validHandIndices[i];
                             const Hand& hand = allHands[handIdx];
-                            std::vector<Card> handCards = {hand.getCard1(), hand.getCard2()};
-                            handStrengths[i] = HandEvaluator::evaluate(board, handCards);
+                            handStrengths[i] = HandEvaluator::evaluate(board, hand);
                         }
                         
                         // Compare all pairs of valid hands and update equity table

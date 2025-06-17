@@ -20,7 +20,7 @@ int compareHands(const HandValue& a, const HandValue& b) {
     return 0;
 }
 
-std::vector<Card> getRemainingDeck(const std::vector<Card>& hand1, const std::vector<Card>& hand2) {
+std::vector<Card> getRemainingDeck(const Hand& hand1, const Hand& hand2) {
     Deck fullDeck;
     std::vector<Card> remaining = fullDeck.getCards();
 
@@ -30,13 +30,15 @@ std::vector<Card> getRemainingDeck(const std::vector<Card>& hand1, const std::ve
         }), remaining.end());
     };
 
-    for (const auto& c : hand1) removeCard(c);
-    for (const auto& c : hand2) removeCard(c);
+    removeCard(hand1.getCard1());
+    removeCard(hand1.getCard2());
+    removeCard(hand2.getCard1());
+    removeCard(hand2.getCard2());
 
     return remaining;
 }
 
-double EquityCalculator::calculateEquityMonteCarlo(const std::vector<Card>& hand1, const std::vector<Card>& hand2, int iterations) {
+double EquityCalculator::calculateEquityMonteCarlo(const Hand& hand1, const Hand& hand2, int iterations) {
     std::vector<Card> remaining = getRemainingDeck(hand1, hand2);
 
     // Determine the number of threads to use based on hardware concurrency
@@ -109,7 +111,7 @@ double EquityCalculator::calculateEquityMonteCarlo(const std::vector<Card>& hand
     return equity;
 }
 
-double EquityCalculator::calculateExactEquity(const std::vector<Card>& hand1, const std::vector<Card>& hand2) {
+double EquityCalculator::calculateExactEquity(const Hand& hand1, const Hand& hand2) {
     std::vector<Card> remaining = getRemainingDeck(hand1, hand2);
 
     long long totalBoards = 0;

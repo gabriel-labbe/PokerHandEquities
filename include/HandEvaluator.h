@@ -3,6 +3,7 @@
 
 #include "Board.h"
 #include "Card.h"
+#include "Hand.h"
 #include <vector>
 #include <array>
 #include <algorithm>
@@ -20,7 +21,7 @@ struct HandValue {
 
 class HandEvaluator {
 public:
-    static HandValue evaluate(const Board& board, const std::vector<Card>& hand);
+    static HandValue evaluate(const Board& board, const Hand& hand);
     static int getTopStraightRank(uint16_t mask);
 
 private:
