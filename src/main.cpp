@@ -3,10 +3,6 @@
 #include <vector>
 #include <array>
 #include <chrono>
-#include <random>
-#include <algorithm>
-#include <map>
-#include <utility>
 #include "../include/Card.h"
 #include "../include/Deck.h"
 #include "../include/Hand.h"
@@ -36,9 +32,6 @@ int main() {
     // Get full deck
     Deck deck;
     std::vector<Card> fullDeck = deck.getCards();
-    std::random_device rd;
-    std::mt19937 g(rd());
-    std::shuffle(fullDeck.begin(), fullDeck.end(), g);
     
     // Start timing
     auto start = std::chrono::steady_clock::now();
@@ -55,9 +48,6 @@ int main() {
                         };
                         
                         Board board(boardCards);
-                        auto suitCount = board.getSuitCount();
-                        int maxSuit = 0;
-                        for (auto count : suitCount) maxSuit = std::max(maxSuit, count);
                         uint64_t boardMask = 0;
                         for (const auto& card : boardCards) {
                             boardMask |= (1ULL << card.getId());
@@ -74,23 +64,10 @@ int main() {
                         
                         // Evaluate hand strengths for all valid hands
                         std::vector<HandValue> handStrengths(validHandIndices.size());
-                        if (maxSuit > 2) {
-                            for (size_t i = 0; i < validHandIndices.size(); i++) {
-                                int handIdx = validHandIndices[i];
-                                const Hand& hand = allHands[handIdx];
-                                handStrengths[i] = HandEvaluator::evaluate(board, hand);
-                            }
-                        } else {
-                            std::map<std::pair<int, int>, HandValue> rankHandValues;
-                            for (size_t i = 0; i < validHandIndices.size(); i++) {
-                                int handIdx = validHandIndices[i];
-                                const Hand& hand = allHands[handIdx];
-                                std::pair<int, int> key{static_cast<int>(hand.getCard1().getRank()), static_cast<int>(hand.getCard2().getRank())};
-                                if (rankHandValues.count(key) == 0) {
-                                    rankHandValues[key] = HandEvaluator::evaluate(board, hand);
-                                }
-                                handStrengths[i] = rankHandValues[key];
-                            }
+                        for (size_t i = 0; i < validHandIndices.size(); i++) {
+                            int handIdx = validHandIndices[i];
+                            const Hand& hand = allHands[handIdx];
+                            handStrengths[i] = HandEvaluator::evaluate(board, hand);
                         }
                         
                         // Compare all pairs of valid hands and update equity table
