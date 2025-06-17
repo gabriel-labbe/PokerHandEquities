@@ -30,10 +30,8 @@ std::vector<Card> getRemainingDeck(const Hand& hand1, const Hand& hand2) {
         }), remaining.end());
     };
 
-    removeCard(hand1.getCard1());
-    removeCard(hand1.getCard2());
-    removeCard(hand2.getCard1());
-    removeCard(hand2.getCard2());
+    for (const auto& c : hand1.getCards()) removeCard(c);
+    for (const auto& c : hand2.getCards()) removeCard(c);
 
     return remaining;
 }

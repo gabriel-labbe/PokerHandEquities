@@ -15,3 +15,7 @@ Card Hand::getCard2() const {
 uint64_t Hand::getMask() const {
     return mask;
 }
+
+std::vector<Card> Hand::getCards() const {
+    return {card1, card2};
+}

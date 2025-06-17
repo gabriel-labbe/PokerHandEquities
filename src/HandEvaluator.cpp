@@ -5,16 +5,8 @@ HandValue HandEvaluator::evaluate(const Board& board, const Hand& hand) {
     std::array<int, 4> suitCount = board.getSuitCount();
     uint16_t rankMask = board.getRankMask();
 
-    // Add hand cards
-    {
-        const Card& c = hand.getCard1();
-        int r = static_cast<int>(c.getRank());
-        rankCount[r]++;
-        suitCount[static_cast<int>(c.getSuit())]++;
-        rankMask |= (1 << r);
-    }
-    {
-        const Card& c = hand.getCard2();
+    // Add hand cards to counts in single pass
+    for (const auto& c : hand.getCards()) {
         int r = static_cast<int>(c.getRank());
         rankCount[r]++;
         suitCount[static_cast<int>(c.getSuit())]++;
@@ -40,10 +32,10 @@ HandValue HandEvaluator::evaluate(const Board& board, const Hand& hand) {
             if (static_cast<int>(c.getSuit()) == flushSuit)
                 flushMask |= (1 << static_cast<int>(c.getRank()));
         }
-        if (static_cast<int>(hand.getCard1().getSuit()) == flushSuit)
-            flushMask |= (1 << static_cast<int>(hand.getCard1().getRank()));
-        if (static_cast<int>(hand.getCard2().getSuit()) == flushSuit)
-            flushMask |= (1 << static_cast<int>(hand.getCard2().getRank()));
+        for (const auto& c : hand.getCards()) {
+            if (static_cast<int>(c.getSuit()) == flushSuit)
+                flushMask |= (1 << static_cast<int>(c.getRank()));
+        }
 
         int topStraight = getTopStraightRank(flushMask);
         if (topStraight != 0) {
@@ -98,9 +90,11 @@ HandValue HandEvaluator::evaluate(const Board& board, const Hand& hand) {
                 }
             }
                 if (!hasRank) {
-                    if ((static_cast<int>(hand.getCard1().getSuit()) == flushSuit && static_cast<int>(hand.getCard1().getRank()) == r) ||
-                        (static_cast<int>(hand.getCard2().getSuit()) == flushSuit && static_cast<int>(hand.getCard2().getRank()) == r)) {
-                        hasRank = true;
+                    for (const auto& c : hand.getCards()) {
+                        if (static_cast<int>(c.getSuit()) == flushSuit && static_cast<int>(c.getRank()) == r) {
+                            hasRank = true;
+                            break;
+                        }
                     }
                 }
             if (hasRank) {

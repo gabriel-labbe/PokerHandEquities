@@ -3,6 +3,7 @@
 
 #include "Card.h"
 #include <cstdint>
+#include <vector>
 
 class Hand {
 public:
@@ -11,6 +12,7 @@ public:
     Card getCard1() const;
     Card getCard2() const;
     uint64_t getMask() const;
+    std::vector<Card> getCards() const;
 
 private:
     Card card1, card2;
