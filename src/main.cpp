@@ -31,6 +31,7 @@ int main() {
     
     // Get full deck
     Deck deck;
+    deck.shuffle();
     std::vector<Card> fullDeck = deck.getCards();
     
     // Start timing
